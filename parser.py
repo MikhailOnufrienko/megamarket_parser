@@ -1,5 +1,3 @@
-import time
-
 import pandas as pd
 from pydantic import ValidationError
 
@@ -26,7 +24,6 @@ class Parser:
                 cookies = driver.get_cookies()
                 for cookie in cookies:
                     driver.add_cookie(cookie)
-            time.sleep(2)
             try:
                 product_elements = WebDriverWait(driver, 10).until(
                     EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'a[data-test="product-name-link"]'))
@@ -36,7 +33,8 @@ class Parser:
                 return
             if product_elements:
                 try:
-                    products: Product = Parser._extract(product_elements[:1], driver)
+                    links = Parser._get_links(product_elements)
+                    products: Product = Parser._extract(links[:10], driver)
                     Parser._save_to_excel(products)
                 except Exception as e:
                     print(f'Ошибка при извлечении данных или сохранении в Excel: {e}')
@@ -61,18 +59,27 @@ class Parser:
             return 0.00
     
     @staticmethod
-    def _extract(elements: list[WebElement], driver: WebDriver) -> list[Product]:
+    def _extract(links: list[str], driver: WebDriver) -> list[Product]:
         # Извлечь данные из найденных веб-элементов.
         products = []
-        for element in elements:
+        for link in links:
             try:
-                link = element.get_attribute('href')
                 driver.get(link)
-                time.sleep(2)
-                name=driver.find_element(By.CSS_SELECTOR, 'h1[itemprop="name"]').text
-                price=driver.find_element(By.CSS_SELECTOR, 'span.sales-block-offer-price__price-final').text
+                if Parser._is_captcha_present(driver):
+                    input("Пройдите CAPTCHA вручную и нажмите Enter.")
+                    cookies = driver.get_cookies()
+                    for cookie in cookies:
+                        driver.add_cookie(cookie)
+                name = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, 'h1[itemprop="name"]'))
+                ).text
+                price = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, 'span.sales-block-offer-price__price-final'))
+                ).text
                 try:
-                    description=driver.find_element(By.CSS_SELECTOR, 'div[itemprop="description"].text-block').text
+                    description = WebDriverWait(driver, 10).until(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, 'div[itemprop="description"].text-block'))
+                    ).text
                 except NoSuchElementException:
                     continue
                 try:
@@ -88,11 +95,20 @@ class Parser:
                     continue
             except WebDriverException as e:
                 print(f'Произошла ошибка при парсинге страницы: {e}')
-                return []
+                return products
             except Exception as e:
                 print(f'Произошла непредвиденная ошибка при парсинге страницы: {e}')
-                return []
+                return products
         return products
+    
+    @staticmethod
+    def _get_links(elements: list[WebElement]) -> list[str]:
+        # Получить ссылки на товары из найденных веб-элементов.
+        links = []
+        for element in elements:
+            link = element.get_attribute('href')
+            links.append(link)
+        return links
 
     @staticmethod
     def _save_to_excel(products: list[Product], filename='goods.xlsx') -> None:
@@ -109,4 +125,4 @@ class Parser:
 if __name__ == '__main__':
     webdriver_factory = ChromeWebDriverFactory()
     extractor = Parser(webdriver_factory)
-    extractor.main(r'https://megamarket.ru/catalog/?q=%D0%B8%D0%B3%D1%80%D0%BE%D0%B2%D0%BE%D0%B5%20%D0%BA%D1%80%D0%B5%D1%81%D0%BB%D0%BE')
+    extractor.main('https://megamarket.ru/catalog/?q=%D0%B8%D0%B3%D1%80%D0%BE%D0%B2%D0%BE%D0%B5%20%D0%BA%D1%80%D0%B5%D1%81%D0%BB%D0%BE&suggestionType=constructor')
