@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+    container_name: megamarket_parser
+    environment:
+      - CHROMIUM_BIN=/usr/bin/chromium
+      - CHROMEDRIVER_BIN=/usr/local/bin/chromedriver
+      - DISPLAY=${DISPLAY}
+    volumes:
+      - .:/app
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["python", "parser.py"]
