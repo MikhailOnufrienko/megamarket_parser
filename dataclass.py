@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import Field, ValidationError, HttpUrl
+from pydantic import Field, HttpUrl
 from pydantic.dataclasses import dataclass
 
 

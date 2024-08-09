@@ -38,6 +38,7 @@ class Parser:
                     Parser._save_to_excel(products)
                 except Exception as e:
                     print(f'Ошибка при извлечении данных или сохранении в Excel: {e}')
+                    return
     
     @staticmethod
     def _is_captcha_present(driver: WebDriver) -> bool:
@@ -45,7 +46,7 @@ class Parser:
         try:
             captcha_element = driver.find_element(By.ID, 'captcha-holder')
             return captcha_element.is_displayed()
-        except NoSuchElementException as e:
+        except NoSuchElementException:
             return False
     
     @staticmethod
