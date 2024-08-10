@@ -19,7 +19,7 @@ class Parser:
     def main(self, page_link: str) -> None:
         with self.driver_factory.create_driver() as driver:
             driver.get(page_link)
-            if Parser._is_captcha_present(driver):
+            if Parser._captcha_found(driver):
                 input("Пройдите CAPTCHA вручную и нажмите Enter.")
                 cookies = driver.get_cookies()
                 for cookie in cookies:
@@ -33,15 +33,15 @@ class Parser:
                 return
             if product_elements:
                 try:
-                    links = Parser._get_links(product_elements)
-                    products: Product = Parser._extract(links[:10], driver)
+                    links = Parser._get_links(product_elements[:20])  # Извлекаем первые 20 ссылок.
+                    products: Product = Parser._extract(links, driver)
                     Parser._save_to_excel(products)
                 except Exception as e:
                     print(f'Ошибка при извлечении данных или сохранении в Excel: {e}')
                     return
     
     @staticmethod
-    def _is_captcha_present(driver: WebDriver) -> bool:
+    def _captcha_found(driver: WebDriver) -> bool:
         # Проверить наличие CAPTCHA.
         try:
             captcha_element = driver.find_element(By.ID, 'captcha-holder')
@@ -66,7 +66,7 @@ class Parser:
         for link in links:
             try:
                 driver.get(link)
-                if Parser._is_captcha_present(driver):
+                if Parser._captcha_found(driver):
                     input("Пройдите CAPTCHA вручную и нажмите Enter.")
                     cookies = driver.get_cookies()
                     for cookie in cookies:
