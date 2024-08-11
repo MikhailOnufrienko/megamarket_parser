@@ -8,11 +8,15 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
+from config import settings
 from dataclass import Product
 from webdriver_factory import WebDriverAbstractFactory, ChromeWebDriverFactory    
 
 
 class Parser:
+    filename = settings.excel_filename
+    articles_number = settings.articles_number
+
     def __init__(self, driver_factory: WebDriverAbstractFactory):
         self.driver_factory = driver_factory
     
@@ -33,9 +37,9 @@ class Parser:
                 return
             if product_elements:
                 try:
-                    links = Parser._get_links(product_elements[:20])  # Извлекаем первые 20 ссылок.
+                    links = Parser._get_links(product_elements[:Parser.articles_number])  # Извлекаем первые 20 ссылок.
                     products: Product = Parser._extract(links, driver)
-                    Parser._save_to_excel(products)
+                    Parser._save_to_excel(products, Parser.filename)
                 except Exception as e:
                     print(f'Ошибка при извлечении данных или сохранении в Excel: {e}')
                     return
@@ -95,10 +99,10 @@ class Parser:
                     print(f'Не удалось создать объект Product: {e}')
                     continue
             except WebDriverException as e:
-                print(f'Произошла ошибка при парсинге страницы: {e}')
+                print(f'Произошла ошибка при парсинге страницы: {e}. Извлечено товаров: {len(products)}.')
                 return products
             except Exception as e:
-                print(f'Произошла непредвиденная ошибка при парсинге страницы: {e}')
+                print(f'Произошла непредвиденная ошибка при парсинге страницы: {e}. Извлечено товаров: {len(products)}.')
                 return products
         return products
     
@@ -112,13 +116,13 @@ class Parser:
         return links
 
     @staticmethod
-    def _save_to_excel(products: list[Product], filename='goods.xlsx') -> None:
+    def _save_to_excel(products: list[Product], filename: str) -> None:
         # Сохранить извлеченные данные в таблицу Excel.
         try:
             df = pd.DataFrame([product.__dict__ for product in products])
             df['description'] = df['description'].fillna("")
             with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-                df.to_excel(writer, sheet_name='goods', index=False)
+                df.to_excel(writer, sheet_name=filename.split('.')[0], index=False)
         except Exception as e:
             print(f'Ошибка при сохранении данных в Excel: {e}')
 
