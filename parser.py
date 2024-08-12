@@ -115,7 +115,8 @@ class Parser:
                             By.CSS_SELECTOR,
                             'div[itemprop="description"].text-block'
                         ))
-                    ).text
+                    )
+                    description_paragraph = description.find_element(By.TAG_NAME, 'p').text
                 except NoSuchElementException:
                     continue
                 try:
@@ -123,7 +124,7 @@ class Parser:
                         name=name,
                         link=link,
                         price=Parser._price_to_float(price),
-                        description=description,
+                        description=description_paragraph,
                     )
                     products.append(product)
                 except ValidationError as e:
@@ -131,11 +132,11 @@ class Parser:
                     continue
             except WebDriverException as e:
                 print(f'''Произошла ошибка при парсинге страницы: {e}. '''
-                      '''Извлечено товаров: {len(products)}.''')
+                      f'''Извлечено товаров: {len(products)}.''')
                 return products
             except Exception as e:
                 print(f'''Произошла непредвиденная ошибка при парсинге страницы: {e}. '''
-                      '''Извлечено товаров: {len(products)}.''')
+                      f'''Извлечено товаров: {len(products)}.''')
                 return products
         return products
     
